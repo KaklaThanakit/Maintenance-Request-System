@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maintenance Request System</title>
+    <link rel="icon" href="Logo.png">
+    <style>
+        * {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background: #f4f6f8;
+    margin: 0;
+    padding: 20px;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+/* ✅ container ปรับตามจอ */
+.container {
+    background: white;
+    padding: 24px;
+    border-radius: 14px;
+    width: 100%;
+    max-width: 500px; /* desktop ไม่กว้างเกิน */
+    box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+}
+
+/* desktop ใหญ่ขึ้น */
+@media (min-width: 768px) {
+    .container {
+        padding: 32px;
+        max-width: 600px;
+    }
+}
+
+h2 {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+/* spacing คุมด้วย CSS */
+.form-group {
+    margin-bottom: 16px;
+}
+
+label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 14px;
+}
+
+/* input เต็ม width */
+input, select, textarea {
+    width: 100%;
+    padding: 12px;
+    border-radius: 10px;
+    border: none;
+    background: #e9eef6;
+    font-size: 14px;
+}
+
+/* desktop ใหญ่ขึ้น */
+@media (min-width: 768px) {
+    input, select, textarea {
+        font-size: 15px;
+        padding: 14px;
+    }
+}
+
+textarea {
+    resize: vertical;
+}
+
+/* ปุ่ม */
+button {
+    margin-top: 10px;
+    width: 100%;
+    padding: 14px;
+    border: none;
+    background: #007bff;
+    color: white;
+    border-radius: 10px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #0056b3;
+}
+
+/* logo responsive */
+.logo {
+    width: 120px;
+    display: block;
+    margin: 0 auto 12px;
+}
+
+/* desktop logo ใหญ่ขึ้น */
+@media (min-width: 768px) {
+    .logo {
+        width: 150px;
+    }
+}
+    </style>
+</head>
+<body>
+<div class="container">
+    <img src="Logo.png" class="logo">
+    <h2>Maintenance Request System</h2>
+
+    <form id="reportForm">
+
+    <div class="form-group">
+        <label>เลขห้อง</label>
+        <input type="text" id="room" placeholder="เช่น A101" required>
+    </div>
+
+    <div class="form-group">
+        <label>เบอร์โทร</label>
+        <input type="tel" id="phone" placeholder="เช่น 0812345678" required>
+    </div>
+
+    <div class="form-group">
+        <label>ประเภทปัญหา</label>
+        <select id="issueType">
+            <option>ไฟฟ้า</option>
+            <option>ประปา</option>
+            <option>IT</option>
+            <option>แอร์</option>
+            <option>เฟอร์นิเจอร์</option>
+            <option>อาคาร</option>
+            <option>ความปลอดภัย</option>
+            <option>อื่น ๆ</option>
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label>รายละเอียด</label>
+        <textarea id="description" rows="3"></textarea>
+    </div>
+
+    <div class="form-group">
+        <label>อัปโหลดรูป</label>
+        <input type="file" id="image">
+    </div>
+
+    <button type="submit">ส่งแจ้งปัญหา</button>
+</form>
+    </form>
+</div>
+<script>
+document.getElementById("reportForm").addEventListener("submit", async function(e) {
+    e.preventDefault();
+
+    const file = document.getElementById("image").files[0];
+    let imageUrl = "";
+
+    // 🔥 LOG 1
+    console.log("File:", file);
+
+    // ✅ STEP 1: ขอ presigned URL
+    if (file) {
+        const res = await fetch("https://fvd44pa0kg.execute-api.ap-southeast-1.amazonaws.com/prod/report");
+        const data = await res.json();
+        const phone = document.getElementById("phone").value;
+
+        if (!/^[0-9]{9,10}$/.test(phone)) {
+        alert("กรอกเบอร์โทรไม่ถูกต้อง");
+        return;
+        }
+        const uploadUrl = data.uploadUrl;
+        imageUrl = data.fileUrl;
+
+        // 🔥 LOG 2
+        console.log("Upload URL:", uploadUrl);
+        console.log("Image URL:", imageUrl);
+
+        // ✅ STEP 2: upload ไป S3
+        await fetch(uploadUrl, {
+            method: "PUT",
+            headers: {
+                "Content-Type": file.type
+            },
+            body: file
+        });
+    }
+
+    const payload = {
+    room: document.getElementById("room").value,
+    phone: document.getElementById("phone").value, 
+    issue: document.getElementById("issueType").value,
+    description: document.getElementById("description").value,
+    image_url: imageUrl
+};
+    // 🔥 LOG 3
+    console.log("Payload:", payload);
+
+    try {
+        const response = await fetch("https://fvd44pa0kg.execute-api.ap-southeast-1.amazonaws.com/prod/report", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+
+        alert("แจ้งปัญหาเรียบร้อย!");
+        document.getElementById("reportForm").reset();
+
+    } catch (error) {
+        alert("เกิดข้อผิดพลาด");
+        console.error(error);
+    }
+});
+</script>

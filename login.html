@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login</title>
+<link rel="icon" href="Logo.png">
+<style>
+body {
+    margin: 0;
+    font-family: Arial;
+    background: #f4f6f8;
+}
+
+/* layout */
+.wrapper {
+    display: flex;
+    height: 100vh;
+}
+
+/* ซ้าย (ภาพ) */
+.left {
+    flex: 1;
+    background: url('Tikka.png') no-repeat center;
+    background-size: 300px;
+    background-color: #244a74;
+}
+
+/* ขวา (login card) */
+.right {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* card */
+.card {
+    background: white;
+    padding: 30px;
+    border-radius: 15px;
+    width: 320px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    text-align: center;
+}
+
+.card h2 {
+    color: #2f5fa5;
+}
+
+input {
+    width: 80%;
+    padding: 14px;
+    margin-top: 7px;
+    border-radius: 12px;
+    border: none;
+    background: #e9eef6;
+    box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);
+}
+
+button {
+    width: 100%;
+    padding: 12px;
+    margin-top: 15px;
+    border: none;
+    border-radius: 8px;
+    background: #3b6edc;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #2a54b8;
+}
+
+.error {
+    color: red;
+    font-size: 14px;
+    margin-top: 10px;
+}
+.card {
+    text-align: center;
+        }
+
+.logo {
+    width: 250px;
+    display: block;
+    margin: 0 auto 10px;
+                
+        }
+/* 📱 MOBILE */
+@media (max-width: 768px) {
+
+    .wrapper {
+        flex-direction: column;
+    }
+
+    .left {
+        display: none; /* ซ่อนฝั่งซ้าย */
+    }
+
+    .right {
+        flex: none;
+        height: 100vh;
+    }
+
+    .card {
+        padding: 25px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="wrapper">
+
+    <!-- ซ้าย -->
+    <div class="left"></div>
+
+    <!-- ขวา -->
+    <div class="right">
+        <div class="card">
+            <img src="Logo.png" class="logo">
+            <h3>Dashboard Login</h3>
+            <h2>WELCOME BACK</h2>
+            <p>Work well and you’ll definitely get a bonus!</p>
+
+            <input type="text" id="username" placeholder="Username">
+            <input type="password" id="password" placeholder="Password">
+
+            <div id="error" class="error"></div>
+
+            <button onclick="login()">Login to My Account</button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+function login() {
+    const user = document.getElementById("username").value;
+    const pass = document.getElementById("password").value;
+
+    // 🔥 เปลี่ยนตรงนี้เป็นรหัสของคุณ
+    if (user === "admin" && pass === "1234") {
+        localStorage.setItem("auth", "true");
+        window.location.href = "list.html";
+    } else {
+        document.getElementById("error").innerText = "Wrong Username or Password!";
+    }
+}
+</script>
+
+</body>
+</html>

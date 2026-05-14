@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>Admin Dashboard</title>
+<link rel="icon" href="Logo.png">
+
+<style>
+body {
+    margin: 0;
+    font-family: Arial;
+    display: flex;
+    background: #f4f6f8;
+}
+
+/* Sidebar */
+.sidebar {
+    width: 220px;
+    background: #1e293b;
+    color: white;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    padding: 20px;
+}
+
+.sidebar button {
+    width: 100%;
+    margin: 5px 0;
+    padding: 10px;
+    border: none;
+    background: #334155;
+    color: white;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.sidebar button:hover {
+    background: #475569;
+}
+
+/* Main */
+.main {
+    flex: 1;
+    padding: 20px;
+}
+
+/* Dashboard */
+.dashboard {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+}
+
+.card {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+/* Item */
+.item {
+    position: relative;
+    background: white;
+    padding: 15px;
+    padding-top: 40px;
+    margin-bottom: 10px;
+    border-radius: 10px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+/* วันที่มุมขวาบน */
+.date {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 13px;
+    color: #64748b;
+}
+
+/* รูป */
+img {
+    border-radius: 8px;
+    margin-top: 10px;
+}
+
+/* ปุ่ม */
+button.action {
+    margin-top: 10px;
+    margin-right: 5px;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
+h1{
+    text-align: center;
+}
+
+.done { background: #22c55e; color: white; }
+.delete { background: #ef4444; color: white; }
+
+/* สีสถานะ */
+.status-done { color: #22c55e; font-weight: bold; }
+.status-pending { color: #f59e0b; font-weight: bold; }
+
+.logo {
+    width: 150px;
+    display: block;
+    margin: 0 auto 10px;
+}
+.sidebar button {
+    display: flex;
+    justify-content: space-between; /* ดันซ้าย-ขวา */
+    align-items: center;
+}
+
+.count {
+    font-weight: bold;
+}
+.title {
+    font-size: 16px;
+    font-weight: 500;
+}
+
+.icon {
+    margin-left: 6px;
+    font-size: 20px;
+    vertical-align: middle;
+}
+.count {
+    font-size: 24px;
+    font-weight: bold;
+}
+.card {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center; /* จัดกลางแนวตั้ง */
+    align-items: center;     /* จัดกลางแนวนอน */
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="sidebar">
+    <img src="Logo.png" class="logo">
+    <h1>🏢 Admin</h1>
+    <button onclick="showPending()">
+    🔴 งานค้าง
+    <span class="count" id="pendingCount">0</span>
+    </button>
+
+    <button onclick="showAll()">
+    📋 ทั้งหมด
+    <span class="count" id="allCount">0</span>
+    </button>
+    <button onclick="logout()">🚪 Logout</button>
+</div>
+
+<div class="main">
+
+    <h2>📊 Dashboard</h2>
+    <div id="dashboard" class="dashboard"></div>
+    <hr>
+    <h2>📋 รายการแจ้งซ่อม</h2>
+    <div id="list"></div>
+
+</div>
+
+<script>
+
+// 🔐 LOGIN
+if (localStorage.getItem("auth") !== "true") {
+    alert("กรุณา login ก่อน");
+    window.location.href = "login.html";
+}
+
+let currentFilter = "all";
+
+// 📅 format date
+function formatDate(dateStr) {
+    if (!dateStr) return "-"; // กัน undefined/null
+
+    const date = new Date(dateStr);
+
+    if (isNaN(date)) return "-"; // กัน Invalid Date
+
+    return date.toLocaleString("th-TH", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+    });
+}
+function normalizeData(data) {
+    return data.map(item => {
+        if (!item.created_at) {
+            item.created_at = new Date(parseInt(item.ticket_id)).toISOString();
+        }
+        return item;
+    });
+}
+
+// 📊 dashboard
+function renderDashboard(data) {
+    const dashboard = document.getElementById("dashboard");
+
+    // ✅ ต้องประกาศก่อนใช้
+    const pending = data.filter(i => i.status === "pending").length;
+    const done = data.filter(i => i.status === "done").length;
+
+    // ✅ อัปเดต sidebar
+    document.getElementById("pendingCount").innerText = pending;
+    document.getElementById("allCount").innerText = data.length;
+
+    // 🔥 นับประเภท
+    const icons = {
+    "ไฟฟ้า": "⚡",
+    "ประปา": "🚿",
+    "IT": "💻",
+    "แอร์": "❄️",
+    "เฟอร์นิเจอร์": "🪑",
+    "อาคาร": "🏢",
+    "ความปลอดภัย": "🔒",
+    "อื่น ๆ": "🛠️"
+};
+    const typeCount = {};
+
+    data.forEach(i => {
+        if (!typeCount[i.issue]) {
+            typeCount[i.issue] = 0;
+        }
+        typeCount[i.issue]++;
+    });
+
+    // 🔥 สร้าง HTML
+    let typeHTML = "";
+
+for (let type in typeCount) {
+
+    const icon = icons[type] || "🛠️"; // default ถ้าไม่มีใน map
+
+    typeHTML += `
+    <div class="card">
+        <div class="title">${type} <span class="icon">${icon}</span></div>
+        <div class="count">${typeCount[type]}</div>
+    </div>
+    `;
+}
+
+    // ✅ แสดงผล
+    dashboard.innerHTML = typeHTML;
+}
+
+// 📦 load data
+async function loadData() {
+
+    const res = await fetch("https://fvd44pa0kg.execute-api.ap-southeast-1.amazonaws.com/prod/report?list=true");
+    let data = await res.json();
+    data = normalizeData(data);
+
+    renderDashboard(data);
+
+    let filtered = data;
+
+    if (currentFilter === "pending") {
+        filtered = data.filter(i => i.status === "pending");
+    }
+
+    const container = document.getElementById("list");
+    container.innerHTML = "";
+    
+    filtered.forEach(item => {
+
+        const dateText = formatDate(item.created_at);
+
+        // 🔥 ซ่อนปุ่มถ้า done
+        const doneBtn = item.status === "done"
+            ? ""
+            : `<button class="action done" onclick="updateStatus('${item.ticket_id}')">
+                    ✅ เสร็จแล้ว
+               </button>`;
+
+        container.innerHTML += `
+            <div class="item">
+                <div class="date">📅 ${dateText}</div>
+                <b>ห้อง:</b> ${item.room}
+                <br>
+                <br>
+                <b>เบอร์โทร:</b> ${item.phone}
+                <br>
+                <br>
+                <b>ปัญหา:</b> ${item.issue}
+                <br>
+                <br>
+                ${item.description}
+                <br>
+                <br>
+                ${item.image_url ? `<img src="${item.image_url}" width="200">` : ""}
+                <br>
+                <br>
+                <b>สถานะ:</b> 
+                <span class="${item.status === 'done' ? 'status-done' : 'status-pending'}">
+                    ${item.status}
+                </span>
+                <br>
+                <br>
+                ${doneBtn}
+
+                <button class="action delete" onclick="deleteItem('${item.ticket_id}')">
+                    ❌ ลบ
+                </button>
+
+            </div>
+        `;
+    });
+}
+
+// filter
+function showPending() {
+    currentFilter = "pending";
+    loadData();
+}
+
+function showAll() {
+    currentFilter = "all";
+    loadData();
+}
+
+// update
+async function updateStatus(id) {
+    await fetch("https://fvd44pa0kg.execute-api.ap-southeast-1.amazonaws.com/prod/report", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            ticket_id: id,
+            status: "done"
+        })
+    });
+
+    loadData();
+}
+
+// delete
+async function deleteItem(id) {
+
+    if (!confirm("ลบจริงไหม?")) return;
+
+    await fetch("https://fvd44pa0kg.execute-api.ap-southeast-1.amazonaws.com/prod/report", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            ticket_id: id
+        })
+    });
+
+    loadData();
+}
+
+// logout
+function logout() {
+    localStorage.removeItem("auth");
+    window.location.href = "login.html";
+}
+
+// start
+loadData();
+
+</script>
+
+</body>
+</html>
